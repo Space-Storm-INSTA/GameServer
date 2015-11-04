@@ -310,7 +310,7 @@
 
     Ennemi.prototype.BomberMan = function() {
       var player, x, _i, _len, _results;
-      console.log("nomber");
+      console.log("Bomber");
       _results = [];
       for (_i = 0, _len = players.length; _i < _len; _i++) {
         player = players[_i];
@@ -391,7 +391,6 @@
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         table = _ref[_i];
         if (table.id === type) {
-          console.log("" + table.id + " et " + table.exp);
           _results.push(this.GlobalScore = this.GlobalScore + table.exp);
         } else {
           _results.push(void 0);

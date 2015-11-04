@@ -209,7 +209,7 @@ class Ennemi
     , 200
   BomberMan: ()->
     #0 - 1080
-    console.log "nomber"
+    console.log "Bomber"
     for player in players
       for x in [0..30]
         x = 35 * x
@@ -245,7 +245,6 @@ class Score
   addScrore: (type) ->
     for table in @exp
       if table.id is type
-        console.log "#{table.id} et #{table.exp}"
         @GlobalScore = @GlobalScore + table.exp
   getScrore: (callback) ->
     arrayExp = []
