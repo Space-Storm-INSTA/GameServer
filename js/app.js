@@ -180,17 +180,6 @@
 
   })();
 
-
-  /*
-  'select level.id_level as "level", level.description as "level_description",
-  ennemie.id_ennemie as "ennemie", ennemie.description as "ennemie_description", ennemie.name as "ennemie_name",
-  ennemie.speed as "ennemie_speed", ennemie.life as "ennemie_life", arme.id_arme as "arme", arme.description as "arme_description",
-  arme.degats as "arme_degats", arme.speed as "arme_speed", level_generate.frame as "frame"
-  from level_generate, level, ennemie, arme
-  where level_generate.id_level=level.id_level and ennemie.id_ennemie=level_generate.id_ennemie and
-  ennemie.id_arme=arme.id_arme AND level.id_level = ?'
-   */
-
   app = new Application();
 
 }).call(this);
