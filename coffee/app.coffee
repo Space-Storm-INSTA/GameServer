@@ -43,6 +43,8 @@ class Player
             master:players[0].master
           })
           console.log "Master changed (#{players[0].id})"
+        if players.length is 0
+          score.initScore()
     catch err
       console.log "close"
       console.log err
@@ -56,6 +58,7 @@ class Player
       switch json.opcode
         when 11
           score.addScrore json.type
+          console.log score.getScore()
           for player in players
             player.socket.sendText JSON.stringify ({
               opcode: 12
@@ -150,15 +153,15 @@ class Application
       players.push new Player(conn, -1)
     ).listen(3001)
 
-    ennemi = new Ennemi()
+    new levelone()
 
     process.on 'uncaughtException', (err) ->
       console.error err.stack
   setupDatabase: (base) ->
     connection = mysql.createConnection {
-      socketPath : '/Applications/MAMP/tmp/mysql/mysql.sock',
+      host : 'localhost',
       user       : 'root',
-      password   : 'root'
+      password   : 'yfful95df'
     }
     console.log "database connected : '#{base}'"
     connection.query "USE #{base}"
@@ -166,7 +169,7 @@ class Ennemi
   constructor: () ->
     @generate (table) =>
       @ennemi = table
-    setInterval =>
+    ###setInterval =>
       try
         nbjoueurs = players.length
         random = Math.floor((Math.random() * 100) + 1)
@@ -193,7 +196,6 @@ class Ennemi
               y: y
             })
         if @getRandom 5
-          #console.log "generate bomberman"
           x = Math.floor((Math.random() * 1080) + 1)
           y = Math.floor((Math.random() * 1080) + 1)
           for player in players
@@ -206,24 +208,12 @@ class Ennemi
       catch err
         console.log "ennemi"
         console.log err
-    , 200
-  BomberMan: ()->
-    #0 - 1080
-    console.log "Bomber"
-    for player in players
-      for x in [0..30]
-        x = 35 * x
-        player.socket.sendText JSON.stringify ({
-          opcode:9
-          ennemi:@getEnnemi 3
-          x: x
-          y: 0
-        })
+    , 200###
   getRandom: (pourcentage) ->
     random = Math.floor(((Math.random() * 100) + 1))
-    #console.log "#{random} <= #{pourcentage * nbjoueurs}"
-    if random <= pourcentage * nbjoueurs and random isnt 0
+    if random <= (pourcentage * nbjoueurs) and random isnt 0
       return true
+    return false
   generate: (callback) ->
     ennemi = []
     connection.query 'select * from ennemie, arme where ennemie.id_arme=arme.id_arme', [], (err, rows) =>
@@ -239,14 +229,16 @@ class Ennemi
         return table
 class Score
   constructor: () ->
-    @GlobalScore = 0
-    @getScrore (exp) =>
+    @initScore()
+    @getScroreEnnemi (exp) =>
        @exp = exp
+  initScore: () ->
+    @GlobalScore = 0
   addScrore: (type) ->
     for table in @exp
       if table.id is type
         @GlobalScore = @GlobalScore + table.exp
-  getScrore: (callback) ->
+  getScroreEnnemi: (callback) ->
     arrayExp = []
     connection.query 'select * from ennemie', [], (err, rows) =>
       if err
@@ -258,5 +250,65 @@ class Score
   getScore: () ->
     return @GlobalScore
 
+class levelone
+  constructor: () ->
+    @finalScore = 10000
+    @partie1()
+    @ennemi = new Ennemi()
+  getXY: () ->
+    return [Math.floor((Math.random() * 1080) + 1), Math.floor((Math.random() * 1080) + 1)]
+  partie1: () ->
+    passage = 0
+    partie = setInterval =>
+      random = Math.floor((Math.random() * 10) + 1)
+      if random < 5
+        XY = @getXY()
+        for player in players
+          player.socket.sendText JSON.stringify ({
+            opcode:9
+            ennemi:@ennemi.getEnnemi 1
+            x: XY[0]
+            y: XY[1]
+          })
+      if random > 7
+        XY = @getXY()
+        for player in players
+          player.socket.sendText JSON.stringify ({
+            opcode:9
+            ennemi:@ennemi.getEnnemi 2
+            x: XY[0]
+            y: XY[1]
+          })
+      if random < 2
+        XY = @getXY()
+        for player in players
+          player.socket.sendText JSON.stringify ({
+            opcode:9
+            ennemi:@ennemi.getEnnemi 3
+            x: XY[0]
+            y: XY[1]
+          })
+      if random is 10
+        passage++
+        if passage > 30
+          passage = 0
+          for j in [1..10]
+            x = j * 101
+            for player in players
+              player.socket.sendText JSON.stringify ({
+                opcode:9
+                ennemi:@ennemi.getEnnemi 3
+                x: x
+                y: 0
+              })
+      if score.getScore() > @finalScore
+        console.log "fin"
+        clearInterval partie
+        for player in players
+          player.socket.sendText JSON.stringify ({
+            opcode:13
+            partie: "DEMO"
+          })
+    , 200
 app = new Application()
 score = new Score()
