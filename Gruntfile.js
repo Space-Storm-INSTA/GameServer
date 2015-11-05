@@ -5,8 +5,11 @@ module.exports = function(grunt) {
   grunt.initConfig({
     coffee: {
       compile: {
+        option:{
+          bare:true
+        },
         files: {
-          'js/app.js': ['coffee/*.coffee']
+          'js/app.js': ['coffee/*.coffee', 'level/*.coffee']
         }
       }
     },

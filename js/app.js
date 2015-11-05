@@ -1,15 +1,194 @@
 (function() {
-  var Application, Ennemi, Player, Score, app, connection, levelone, mysql, nbjoueurs, players, score, ws;
+  var Ennemi;
+
+  Ennemi = (function() {
+    function Ennemi() {
+      this.generate((function(_this) {
+        return function(table) {
+          return _this.ennemi = table;
+        };
+      })(this));
+    }
+
+    Ennemi.prototype.getRandom = function(pourcentage) {
+      var random;
+      random = Math.floor((Math.random() * 100) + 1);
+      if (random <= (pourcentage * nbjoueurs) && random !== 0) {
+        return true;
+      }
+      return false;
+    };
+
+    Ennemi.prototype.generate = function(callback) {
+      var ennemi;
+      ennemi = [];
+      return app.getConnection().query('select * from ennemie, arme where ennemie.id_arme=arme.id_arme', [], (function(_this) {
+        return function(err, rows) {
+          var table, _i, _len;
+          if (err) {
+            console.log("request");
+            console.log(err);
+          }
+          for (_i = 0, _len = rows.length; _i < _len; _i++) {
+            table = rows[_i];
+            ennemi.push(table);
+          }
+          return callback(ennemi);
+        };
+      })(this));
+    };
+
+    Ennemi.prototype.getEnnemi = function(id) {
+      var table, _i, _len, _ref;
+      _ref = this.ennemi;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        table = _ref[_i];
+        if (table.id_ennemie === id) {
+          return table;
+        }
+      }
+    };
+
+    return Ennemi;
+
+  })();
+
+  global.Ennemi = Ennemi;
+
+}).call(this);
+
+(function() {
+  var Score;
+
+  Score = (function() {
+    function Score() {
+      this.initScore();
+      this.getScoreEnnemi((function(_this) {
+        return function(exp) {
+          return _this.exp = exp;
+        };
+      })(this));
+    }
+
+    Score.prototype.initScore = function() {
+      return this.GlobalScore = 0;
+    };
+
+    Score.prototype.SuprScore = function(nb) {
+      return this.GlobalScore - nb;
+    };
+
+    Score.prototype.addScrore = function(type) {
+      var table, _i, _len, _ref, _results;
+      _ref = this.exp;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        table = _ref[_i];
+        if (table.id === type) {
+          _results.push(this.GlobalScore = this.GlobalScore + table.exp);
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    };
+
+    Score.prototype.getScoreEnnemi = function(callback) {
+      var arrayExp;
+      arrayExp = [];
+      return app.getConnection().query('select * from ennemie', [], (function(_this) {
+        return function(err, rows) {
+          var exp, _i, _len;
+          if (err) {
+            console.log("request");
+            console.log(err);
+          }
+          for (_i = 0, _len = rows.length; _i < _len; _i++) {
+            exp = rows[_i];
+            arrayExp.push({
+              id: exp.id_ennemie,
+              exp: exp.exp
+            });
+          }
+          return callback(arrayExp);
+        };
+      })(this));
+    };
+
+    Score.prototype.getScore = function() {
+      return this.GlobalScore;
+    };
+
+    return Score;
+
+  })();
+
+  global.Score = Score;
+
+}).call(this);
+
+(function() {
+  var Application, mysql, ws;
 
   mysql = require('mysql');
 
   ws = require("nodejs-websocket");
 
-  players = new Array();
+  Application = (function() {
+    function Application() {
+      console.log("Init");
+      this.connection = {};
+      this.StartTCP();
+    }
 
-  nbjoueurs = 0;
+    Application.prototype.StartTCP = function() {
+      var server;
+      this.setupDatabase("kingoloto");
+      server = ws.createServer(function(conn) {
+        console.log('New connection');
+        return players.push(new Player(conn, -1));
+      }).listen(3001);
+      return process.on('uncaughtException', function(err) {
+        return console.error(err.stack);
+      });
+    };
 
-  connection = {};
+    Application.prototype.setupDatabase = function(base) {
+      this.connection = mysql.createConnection({
+        host: 'localhost',
+        user: 'root',
+        password: "yfful95df"
+      });
+      console.log("database connected : '" + base + "'");
+      return this.connection.query("USE " + base);
+    };
+
+    Application.prototype.getConnection = function() {
+      return this.connection;
+    };
+
+    return Application;
+
+  })();
+
+  global.Application = Application;
+
+  setTimeout(function() {
+    var app, nbjoueurs, players, score;
+    nbjoueurs = 0;
+    players = new Array();
+    app = new Application();
+    global.app = app;
+    score = new Score();
+    global.nbjoueurs = nbjoueurs;
+    global.score = score;
+    return global.players = players;
+  }, 200);
+
+}).call(this);
+
+(function() {
+  var Player;
 
   Player = (function() {
     function Player(socket, id) {
@@ -25,6 +204,10 @@
         this.close(this.socket);
         this.text(this.socket, this.id);
         this.ennemi;
+        if (players.length === 0) {
+          score.initScore();
+          new Levelone();
+        }
       } catch (_error) {
         err = _error;
         console.log("constructor");
@@ -80,7 +263,7 @@
       this.id = id;
       return this.socket.on('text', (function(_this) {
         return function(str) {
-          var err, json, player, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _m, _n, _results, _results1, _results2, _results3;
+          var err, json, player, playerDead, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _results, _results1, _results2, _results3;
           try {
             json = JSON.parse(str);
           } catch (_error) {
@@ -102,7 +285,9 @@
               return _results;
               break;
             case 10:
-              _results1 = [];
+              playerDead = {
+                dead: false
+              };
               for (_j = 0, _len1 = players.length; _j < _len1; _j++) {
                 player = players[_j];
                 if (player.id === json.id) {
@@ -110,22 +295,50 @@
                   if (player.life < 0) {
                     player.life = 0;
                   }
-                  _results1.push(player.socket.sendText(JSON.stringify({
+                  player.socket.sendText(JSON.stringify({
                     opcode: 10,
                     id: player.id,
-                    life: player.life
-                  })));
-                } else {
-                  _results1.push(void 0);
+                    life: player.life,
+                    dead: false
+                  }));
+                  if (player.life === 0) {
+                    playerDead = player;
+                    playerDead.dead = true;
+                    player.life = 100;
+                    player.socket.sendText(JSON.stringify({
+                      opcode: 10,
+                      id: player.id,
+                      life: player.life,
+                      dead: true
+                    }));
+                  }
                 }
               }
-              return _results1;
+              if (playerDead.dead) {
+                score.SuprScore(1000);
+                _results1 = [];
+                for (_k = 0, _len2 = players.length; _k < _len2; _k++) {
+                  player = players[_k];
+                  if (player.id === playerDead.id) {
+                    player.socket.sendText(JSON.stringify({
+                      opcode: 13,
+                      partie: "Mort <3",
+                      color: "red"
+                    }));
+                  }
+                  _results1.push(player.socket.sendText(JSON.stringify({
+                    opcode: 20,
+                    playerDead: playerDead.id
+                  })));
+                }
+                return _results1;
+              }
               break;
             case 6:
               try {
                 _results2 = [];
-                for (_k = 0, _len2 = players.length; _k < _len2; _k++) {
-                  player = players[_k];
+                for (_l = 0, _len3 = players.length; _l < _len3; _l++) {
+                  player = players[_l];
                   if (player.id !== _this.id) {
                     _results2.push(player.socket.sendText(JSON.stringify({
                       opcode: 7,
@@ -152,8 +365,8 @@
             case 2:
               try {
                 _this.id = json.id;
-                for (_l = 0, _len3 = players.length; _l < _len3; _l++) {
-                  player = players[_l];
+                for (_m = 0, _len4 = players.length; _m < _len4; _m++) {
+                  player = players[_m];
                   if (player.id !== _this.id) {
                     player.socket.sendText(JSON.stringify({
                       opcode: 3,
@@ -169,8 +382,8 @@
                     master: true
                   }));
                 }
-                for (_m = 0, _len4 = players.length; _m < _len4; _m++) {
-                  player = players[_m];
+                for (_n = 0, _len5 = players.length; _n < _len5; _n++) {
+                  player = players[_n];
                   if (player.id !== _this.id) {
                     _this.socket.sendText(JSON.stringify({
                       opcode: 3,
@@ -188,8 +401,8 @@
             case 4:
               try {
                 _results3 = [];
-                for (_n = 0, _len5 = players.length; _n < _len5; _n++) {
-                  player = players[_n];
+                for (_o = 0, _len6 = players.length; _o < _len6; _o++) {
+                  player = players[_o];
                   if (player.id !== _this.id) {
                     _results3.push(player.socket.sendText(JSON.stringify({
                       opcode: 4,
@@ -216,209 +429,121 @@
 
   })();
 
-  Application = (function() {
-    function Application() {
-      console.log("Init");
-      this.StartTCP();
-    }
+  global.Player = Player;
 
-    Application.prototype.StartTCP = function() {
-      var server;
-      this.setupDatabase("kingoloto");
-      server = ws.createServer(function(conn) {
-        console.log('New connection');
-        return players.push(new Player(conn, -1));
-      }).listen(3001);
-      new levelone();
-      return process.on('uncaughtException', function(err) {
-        return console.error(err.stack);
-      });
-    };
+}).call(this);
 
-    Application.prototype.setupDatabase = function(base) {
-      connection = mysql.createConnection({
-        host: 'localhost',
-        user: 'root',
-        password: 'yfful95df'
-      });
-      console.log("database connected : '" + base + "'");
-      return connection.query("USE " + base);
-    };
+(function() {
+  var LevelOneBoss;
 
-    return Application;
-
-  })();
-
-  Ennemi = (function() {
-    function Ennemi() {
-      this.generate((function(_this) {
-        return function(table) {
-          return _this.ennemi = table;
-        };
-      })(this));
-
-      /*setInterval =>
-        try
-          nbjoueurs = players.length
-          random = Math.floor((Math.random() * 100) + 1)
-          if @getRandom 20
-             *console.log "generate vert"
-            x = Math.floor((Math.random() * 1080) + 1)
-            y = Math.floor((Math.random() * 1080) + 1)
-            for player in players
-              player.socket.sendText JSON.stringify ({
-                opcode:9
-                ennemi:@getEnnemi 1
-                x: x
-                y: y
-              })
-          if @getRandom 10
-             *console.log "generate red"
-            x = Math.floor((Math.random() * 1080) + 1)
-            y = Math.floor((Math.random() * 1080) + 1)
-            for player in players
-              player.socket.sendText JSON.stringify ({
-                opcode:9
-                ennemi:@getEnnemi 2
-                x: x
-                y: y
-              })
-          if @getRandom 5
-            x = Math.floor((Math.random() * 1080) + 1)
-            y = Math.floor((Math.random() * 1080) + 1)
-            for player in players
-              player.socket.sendText JSON.stringify ({
-                opcode:9
-                ennemi:@getEnnemi 3
-                x: x
-                y: y
-              })
-        catch err
-          console.log "ennemi"
-          console.log err
-      , 200
-       */
-    }
-
-    Ennemi.prototype.getRandom = function(pourcentage) {
-      var random;
-      random = Math.floor((Math.random() * 100) + 1);
-      if (random <= (pourcentage * nbjoueurs) && random !== 0) {
-        return true;
-      }
-      return false;
-    };
-
-    Ennemi.prototype.generate = function(callback) {
-      var ennemi;
-      ennemi = [];
-      return connection.query('select * from ennemie, arme where ennemie.id_arme=arme.id_arme', [], (function(_this) {
-        return function(err, rows) {
-          var table, _i, _len;
-          if (err) {
-            console.log("request");
-            console.log(err);
-          }
-          for (_i = 0, _len = rows.length; _i < _len; _i++) {
-            table = rows[_i];
-            ennemi.push(table);
-          }
-          return callback(ennemi);
-        };
-      })(this));
-    };
-
-    Ennemi.prototype.getEnnemi = function(id) {
-      var table, _i, _len, _ref;
-      _ref = this.ennemi;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        table = _ref[_i];
-        if (table.id_ennemie === id) {
-          return table;
-        }
-      }
-    };
-
-    return Ennemi;
-
-  })();
-
-  Score = (function() {
-    function Score() {
-      this.initScore();
-      this.getScroreEnnemi((function(_this) {
-        return function(exp) {
-          return _this.exp = exp;
-        };
-      })(this));
-    }
-
-    Score.prototype.initScore = function() {
-      return this.GlobalScore = 0;
-    };
-
-    Score.prototype.addScrore = function(type) {
-      var table, _i, _len, _ref, _results;
-      _ref = this.exp;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        table = _ref[_i];
-        if (table.id === type) {
-          _results.push(this.GlobalScore = this.GlobalScore + table.exp);
-        } else {
-          _results.push(void 0);
-        }
-      }
-      return _results;
-    };
-
-    Score.prototype.getScroreEnnemi = function(callback) {
-      var arrayExp;
-      arrayExp = [];
-      return connection.query('select * from ennemie', [], (function(_this) {
-        return function(err, rows) {
-          var exp, _i, _len;
-          if (err) {
-            console.log("request");
-            console.log(err);
-          }
-          for (_i = 0, _len = rows.length; _i < _len; _i++) {
-            exp = rows[_i];
-            arrayExp.push({
-              id: exp.id_ennemie,
-              exp: exp.exp
-            });
-          }
-          return callback(arrayExp);
-        };
-      })(this));
-    };
-
-    Score.prototype.getScore = function() {
-      return this.GlobalScore;
-    };
-
-    return Score;
-
-  })();
-
-  levelone = (function() {
-    function levelone() {
-      this.finalScore = 10000;
-      this.partie1();
+  LevelOneBoss = (function() {
+    function LevelOneBoss() {
+      this.finalScore = 11000;
       this.ennemi = new Ennemi();
+      setTimeout((function(_this) {
+        return function() {
+          return _this.start();
+        };
+      })(this), 200);
     }
 
-    levelone.prototype.getXY = function() {
+    LevelOneBoss.prototype.getXY = function() {
       return [Math.floor((Math.random() * 1080) + 1), Math.floor((Math.random() * 1080) + 1)];
     };
 
-    levelone.prototype.partie1 = function() {
+    LevelOneBoss.prototype.levelTwo = function() {
+      return setTimeout((function(_this) {
+        return function() {
+          var player, _i, _len;
+          for (_i = 0, _len = players.length; _i < _len; _i++) {
+            player = players[_i];
+            player.socket.sendText(JSON.stringify({
+              opcode: 13,
+              partie: "Reinit !",
+              color: "green"
+            }));
+            player.socket.sendText(JSON.stringify({
+              opcode: 25,
+              boss: false
+            }));
+          }
+          return new LevelOneBoss();
+        };
+      })(this), 5000);
+    };
+
+    LevelOneBoss.prototype.start = function() {
+      var XY, boss, player, _i, _len;
+      console.log("boss generate");
+      XY = this.getXY();
+      for (_i = 0, _len = players.length; _i < _len; _i++) {
+        player = players[_i];
+        boss = this.ennemi.getEnnemi(4);
+        boss.life = boss.life * players.length;
+        player.socket.sendText(JSON.stringify({
+          opcode: 9,
+          ennemi: boss,
+          x: XY[0],
+          y: XY[1]
+        }));
+      }
+      return boss = setInterval((function(_this) {
+        return function() {
+          var _j, _len1;
+          if (score.getScore() >= _this.finalScore) {
+            console.log("terminate");
+            for (_j = 0, _len1 = players.length; _j < _len1; _j++) {
+              player = players[_j];
+              player.socket.sendText(JSON.stringify({
+                opcode: 13,
+                partie: "Level 1 terminé",
+                color: "green"
+              }));
+              player.socket.sendText(JSON.stringify({
+                opcode: 25,
+                boss: false
+              }));
+            }
+            return clearInterval(boss);
+          }
+        };
+      })(this), 200);
+    };
+
+    return LevelOneBoss;
+
+  })();
+
+  global.LevelOneBoss = LevelOneBoss;
+
+}).call(this);
+
+(function() {
+  var Levelone;
+
+  Levelone = (function() {
+    function Levelone() {
+      this.finalScore = 10000;
+      this.ennemi = new Ennemi();
+      score.initScore();
+      console.log(score.getScore());
+      this.partie1();
+    }
+
+    Levelone.prototype.getXY = function() {
+      return [Math.floor((Math.random() * 1080) + 1), Math.floor((Math.random() * 1080) + 1)];
+    };
+
+    Levelone.prototype.Boss = function() {
+      return new LevelOneBoss();
+    };
+
+    Levelone.prototype.partie1 = function() {
       var partie, passage;
       passage = 0;
       return partie = setInterval((function(_this) {
         return function() {
-          var XY, j, player, random, x, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _n, _results;
+          var XY, j, player, random, x, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _n;
           random = Math.floor((Math.random() * 10) + 1);
           if (random < 5) {
             XY = _this.getXY();
@@ -432,7 +557,7 @@
               }));
             }
           }
-          if (random > 7) {
+          if (random > 8) {
             XY = _this.getXY();
             for (_j = 0, _len1 = players.length; _j < _len1; _j++) {
               player = players[_j];
@@ -460,7 +585,7 @@
             passage++;
             if (passage > 30) {
               passage = 0;
-              for (j = _l = 1; _l <= 10; j = ++_l) {
+              for (j = _l = 1; _l <= 15; j = ++_l) {
                 x = j * 101;
                 for (_m = 0, _len3 = players.length; _m < _len3; _m++) {
                   player = players[_m];
@@ -475,33 +600,30 @@
             }
           }
           if (score.getScore() > _this.finalScore) {
-            console.log("fin");
+            console.log("Boss");
             clearInterval(partie);
-            _results = [];
             for (_n = 0, _len4 = players.length; _n < _len4; _n++) {
               player = players[_n];
-              _results.push(player.socket.sendText(JSON.stringify({
+              player.socket.sendText(JSON.stringify({
                 opcode: 13,
-                partie: "DEMO"
-              })));
+                partie: "Boss level 1",
+                color: "red"
+              }));
+              player.socket.sendText(JSON.stringify({
+                opcode: 25,
+                boss: true
+              }));
             }
-            return _results;
+            return _this.Boss();
           }
         };
       })(this), 200);
     };
 
-    return levelone;
+    return Levelone;
 
   })();
 
-  app = new Application();
-
-  score = new Score();
-
-}).call(this);
-
-(function() {
-
+  global.Levelone = Levelone;
 
 }).call(this);
