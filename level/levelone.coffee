@@ -1,12 +1,10 @@
-class Levelone
+class Levelone extends Game
   constructor: () ->
     @finalScore = 10000
     @ennemi = new Ennemi()
     score.initScore()
     console.log score.getScore()
     @partie1()
-  getXY: () ->
-    return [Math.floor((Math.random() * 1080) + 1), Math.floor((Math.random() * 1080) + 1)]
   Boss: () ->
     new LevelOneBoss()
   partie1: () ->

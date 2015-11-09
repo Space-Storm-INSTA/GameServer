@@ -58,6 +58,24 @@
 }).call(this);
 
 (function() {
+  var Game;
+
+  Game = (function() {
+    function Game() {}
+
+    Game.prototype.getXY = function() {
+      return [Math.floor((Math.random() * 1080) + 1), Math.floor((Math.random() * 1080) + 1)];
+    };
+
+    return Game;
+
+  })();
+
+  global.Game = Game;
+
+}).call(this);
+
+(function() {
   var Score;
 
   Score = (function() {
@@ -434,9 +452,13 @@
 }).call(this);
 
 (function() {
-  var LevelOneBoss;
+  var LevelOneBoss,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  LevelOneBoss = (function() {
+  LevelOneBoss = (function(_super) {
+    __extends(LevelOneBoss, _super);
+
     function LevelOneBoss() {
       this.finalScore = 11000;
       this.ennemi = new Ennemi();
@@ -446,10 +468,6 @@
         };
       })(this), 200);
     }
-
-    LevelOneBoss.prototype.getXY = function() {
-      return [Math.floor((Math.random() * 1080) + 1), Math.floor((Math.random() * 1080) + 1)];
-    };
 
     LevelOneBoss.prototype.levelTwo = function() {
       return setTimeout((function(_this) {
@@ -512,16 +530,20 @@
 
     return LevelOneBoss;
 
-  })();
+  })(Game);
 
   global.LevelOneBoss = LevelOneBoss;
 
 }).call(this);
 
 (function() {
-  var Levelone;
+  var Levelone,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  Levelone = (function() {
+  Levelone = (function(_super) {
+    __extends(Levelone, _super);
+
     function Levelone() {
       this.finalScore = 10000;
       this.ennemi = new Ennemi();
@@ -529,10 +551,6 @@
       console.log(score.getScore());
       this.partie1();
     }
-
-    Levelone.prototype.getXY = function() {
-      return [Math.floor((Math.random() * 1080) + 1), Math.floor((Math.random() * 1080) + 1)];
-    };
 
     Levelone.prototype.Boss = function() {
       return new LevelOneBoss();
@@ -622,7 +640,7 @@
 
     return Levelone;
 
-  })();
+  })(Game);
 
   global.Levelone = Levelone;
 

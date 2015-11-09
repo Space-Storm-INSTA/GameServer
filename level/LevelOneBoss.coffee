@@ -1,12 +1,10 @@
-class LevelOneBoss
+class LevelOneBoss extends Game
   constructor: () ->
     @finalScore =  11000
     @ennemi = new Ennemi()
     setTimeout =>
       @start()
     , 200
-  getXY: () ->
-    return [Math.floor((Math.random() * 1080) + 1), Math.floor((Math.random() * 1080) + 1)]
   levelTwo: () ->
     setTimeout =>
       for player in players
