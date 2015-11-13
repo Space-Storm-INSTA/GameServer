@@ -9,4 +9,6 @@ class Game
   setfinalScore: (nb) ->
     score.initScore()
     @finalScore = nb
+  getRandomNumber: () ->
+    return Math.floor((Math.random() * 10) + 1)
 global.Game = Game

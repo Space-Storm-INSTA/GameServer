@@ -20,9 +20,10 @@ class Application
       console.error err.stack
   setupDatabase: (base) ->
     @connection = mysql.createConnection {
-      host : 'localhost',
-      user       : 'root',
-      password   : "nicolas95"
+      host : '5.196.69.227',
+      user       : 'romain',
+      password   : "ntm93"
+
     }
     console.log "database connected : '#{base}'"
     @connection.query "USE #{base}"

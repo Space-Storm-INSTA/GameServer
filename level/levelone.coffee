@@ -1,6 +1,6 @@
-class Levelone extends Game
+class LevelOne extends Game
   constructor: () ->
-    @setfinalScore 500
+    @setfinalScore 10000
     @ennemi = new Ennemi()
     console.log score.getScore()
     @start()
@@ -9,7 +9,7 @@ class Levelone extends Game
   start: () ->
     passage = 0
     partie = setInterval =>
-      random = Math.floor((Math.random() * 10) + 1)
+      random = @getRandomNumber()
       if random < 5
         XY = @getXY()
         @sendAllPlayer {
@@ -61,4 +61,4 @@ class Levelone extends Game
         }
         @Boss()
     , 200
-global.Levelone = Levelone
+global.LevelOne = LevelOne

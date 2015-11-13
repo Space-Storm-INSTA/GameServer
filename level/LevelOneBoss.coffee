@@ -1,6 +1,6 @@
 class LevelOneBoss extends Game
   constructor: () ->
-    @setfinalScore 1000
+    @setfinalScore 10000
     @ennemi = new Ennemi()
     setTimeout =>
       @start()
@@ -17,7 +17,7 @@ class LevelOneBoss extends Game
         opcode: 25
         boss:false
       }
-      new Levelone()
+      new LevelOne()
     , 5000
   start: () ->
     console.log "boss generate"

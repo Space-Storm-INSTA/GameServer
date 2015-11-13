@@ -2,6 +2,7 @@ class Player
   constructor: (@socket, @id) ->
     @life = 100
     @master = false
+    @exp = 0
     try
       @socket.sendText JSON.stringify ({
         opcode: 1
@@ -10,9 +11,9 @@ class Player
       @text @socket, @id
       @ennemi
       if players.length is 0
+        #Démarrage du jeux.
         score.initScore()
-        #new LevelOneBoss()
-        new Levelone()
+        new LevelOne()
     catch err
       console.log "constructor"
       console.log err
@@ -54,6 +55,7 @@ class Player
         console.log "json : #{err}"
       switch json.opcode
         when 11
+          #Exp
           score.addScrore json.type
           console.log score.getScore()
           for player in players
@@ -66,8 +68,7 @@ class Player
           playerDead = {dead:false}
           for player in players
             if player.id is json.id
-              #console.log "players :#{player.id} touché !"
-              #Life
+              #Meooww
               player.life = player.life - 5
               if player.life < 0
                 player.life = 0
@@ -88,7 +89,8 @@ class Player
                   dead: true
                 })
           if playerDead.dead
-            score.SuprScore 1000
+            #On enleve 100 de score global si un joueur meurt
+            score.SuprScore 100
             for player in players
               if player.id is playerDead.id
                 player.socket.sendText JSON.stringify ({
@@ -119,9 +121,10 @@ class Player
             console.log err
 
         when 2
-          #connection player
+          #connection player meooww
           try
             @id = json.id
+            #new Exp @id
             for player in players
               if player.id isnt @id
                 player.socket.sendText JSON.stringify ({

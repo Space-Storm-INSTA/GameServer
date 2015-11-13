@@ -15,7 +15,7 @@ class Score
     arrayExp = []
     app.getConnection().query 'select * from ennemie', [], (err, rows) =>
       if err
-        console.log "request"
+        console.log "request score"
         console.log err
       for exp in rows
         arrayExp.push {id:exp.id_ennemie, exp:exp.exp}

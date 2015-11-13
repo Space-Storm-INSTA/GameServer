@@ -58,6 +58,42 @@
 }).call(this);
 
 (function() {
+  var Exp;
+
+  Exp = (function() {
+    function Exp(id) {
+      this.getScoreEnnemi(id, (function(_this) {
+        return function(exp) {
+          var exp_player;
+          console.log(exp);
+          return exp_player = exp;
+        };
+      })(this));
+    }
+
+    Exp.prototype.getScoreEnnemi = function(id) {
+      console.log(id);
+      return app.getConnection().query('select * from users WHERE id=?', [id], (function(_this) {
+        return function(err, rows) {
+          if (err) {
+            console.log("request exp");
+            console.log(err);
+          }
+          console.log(rows);
+          return callback(rows.exp);
+        };
+      })(this));
+    };
+
+    return Exp;
+
+  })();
+
+  global.Exp = Exp;
+
+}).call(this);
+
+(function() {
   var Game;
 
   Game = (function() {
@@ -82,7 +118,12 @@
     };
 
     Game.prototype.setfinalScore = function(nb) {
+      score.initScore();
       return this.finalScore = nb;
+    };
+
+    Game.prototype.getRandomNumber = function() {
+      return Math.floor((Math.random() * 10) + 1);
     };
 
     return Game;
@@ -136,7 +177,7 @@
         return function(err, rows) {
           var exp, _i, _len;
           if (err) {
-            console.log("request");
+            console.log("request score");
             console.log(err);
           }
           for (_i = 0, _len = rows.length; _i < _len; _i++) {
@@ -191,9 +232,9 @@
 
     Application.prototype.setupDatabase = function(base) {
       this.connection = mysql.createConnection({
-        host: 'localhost',
-        user: 'root',
-        password: "yfful95df"
+        host: '5.196.69.227',
+        user: 'romain',
+        password: "ntm93"
       });
       console.log("database connected : '" + base + "'");
       return this.connection.query("USE " + base);
@@ -233,6 +274,7 @@
       this.id = id;
       this.life = 100;
       this.master = false;
+      this.exp = 0;
       try {
         this.socket.sendText(JSON.stringify({
           opcode: 1
@@ -242,7 +284,7 @@
         this.ennemi;
         if (players.length === 0) {
           score.initScore();
-          new Levelone();
+          new LevelOne();
         }
       } catch (_error) {
         err = _error;
@@ -351,7 +393,7 @@
                 }
               }
               if (playerDead.dead) {
-                score.SuprScore(1000);
+                score.SuprScore(100);
                 _results1 = [];
                 for (_k = 0, _len2 = players.length; _k < _len2; _k++) {
                   player = players[_k];
@@ -478,7 +520,7 @@
     __extends(LevelOneBoss, _super);
 
     function LevelOneBoss() {
-      this.setfinalScore(1500);
+      this.setfinalScore(10000);
       this.ennemi = new Ennemi();
       setTimeout((function(_this) {
         return function() {
@@ -500,7 +542,7 @@
             opcode: 25,
             boss: false
           });
-          return new Levelone();
+          return new LevelOne();
         };
       })(this), 5000);
     };
@@ -546,32 +588,77 @@
 }).call(this);
 
 (function() {
-  var Levelone,
+  var LevelTwo,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  Levelone = (function(_super) {
-    __extends(Levelone, _super);
+  LevelTwo = (function(_super) {
+    __extends(LevelTwo, _super);
 
-    function Levelone() {
-      this.setfinalScore(500);
+    function LevelTwo() {
+      this.setfinalScore(2000);
       this.ennemi = new Ennemi();
-      score.initScore();
-      console.log(score.getScore());
-      this.partie1();
+      this.start();
     }
 
-    Levelone.prototype.Boss = function() {
+    LevelTwo.prototype.Boss = function() {};
+
+    LevelTwo.prototype.start = function() {
+      var start;
+      return start = setInterval((function(_this) {
+        return function() {
+          var XY, random;
+          random = _this.getRandomNumber();
+          XY = _this.getXY();
+          if (random < 2) {
+            _this.sendAllPlayer({
+              opcode: 9,
+              ennemi: _this.ennemi.getEnnemi(6),
+              x: XY[0],
+              y: XY[1]
+            });
+          }
+          if (score.getScore() > _this.getfinalScore()) {
+            return clearInterval(start);
+          }
+        };
+      })(this), 200);
+    };
+
+    return LevelTwo;
+
+  })(Game);
+
+  global.LevelTwo = LevelTwo;
+
+}).call(this);
+
+(function() {
+  var LevelOne,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  LevelOne = (function(_super) {
+    __extends(LevelOne, _super);
+
+    function LevelOne() {
+      this.setfinalScore(10000);
+      this.ennemi = new Ennemi();
+      console.log(score.getScore());
+      this.start();
+    }
+
+    LevelOne.prototype.Boss = function() {
       return new LevelOneBoss();
     };
 
-    Levelone.prototype.partie1 = function() {
+    LevelOne.prototype.start = function() {
       var partie, passage;
       passage = 0;
       return partie = setInterval((function(_this) {
         return function() {
           var XY, j, player, random, x, _i, _j, _len;
-          random = Math.floor((Math.random() * 10) + 1);
+          random = _this.getRandomNumber();
           if (random < 5) {
             XY = _this.getXY();
             _this.sendAllPlayer({
@@ -635,10 +722,10 @@
       })(this), 200);
     };
 
-    return Levelone;
+    return LevelOne;
 
   })(Game);
 
-  global.Levelone = Levelone;
+  global.LevelOne = LevelOne;
 
 }).call(this);
