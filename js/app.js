@@ -67,6 +67,24 @@
       return [Math.floor((Math.random() * 1080) + 1), Math.floor((Math.random() * 1080) + 1)];
     };
 
+    Game.prototype.sendAllPlayer = function(json) {
+      var player, _i, _len, _results;
+      _results = [];
+      for (_i = 0, _len = players.length; _i < _len; _i++) {
+        player = players[_i];
+        _results.push(player.socket.sendText(JSON.stringify(json)));
+      }
+      return _results;
+    };
+
+    Game.prototype.getfinalScore = function() {
+      return this.finalScore;
+    };
+
+    Game.prototype.setfinalScore = function(nb) {
+      return this.finalScore = nb;
+    };
+
     return Game;
 
   })();
@@ -460,7 +478,7 @@
     __extends(LevelOneBoss, _super);
 
     function LevelOneBoss() {
-      this.finalScore = 11000;
+      this.setfinalScore(1500);
       this.ennemi = new Ennemi();
       setTimeout((function(_this) {
         return function() {
@@ -472,57 +490,48 @@
     LevelOneBoss.prototype.levelTwo = function() {
       return setTimeout((function(_this) {
         return function() {
-          var player, _i, _len;
-          for (_i = 0, _len = players.length; _i < _len; _i++) {
-            player = players[_i];
-            player.socket.sendText(JSON.stringify({
-              opcode: 13,
-              partie: "Reinit !",
-              color: "green"
-            }));
-            player.socket.sendText(JSON.stringify({
-              opcode: 25,
-              boss: false
-            }));
-          }
-          return new LevelOneBoss();
+          score.initScore();
+          _this.sendAllPlayer({
+            opcode: 13,
+            partie: "Reinit !",
+            color: "green"
+          });
+          _this.sendAllPlayer({
+            opcode: 25,
+            boss: false
+          });
+          return new Levelone();
         };
       })(this), 5000);
     };
 
     LevelOneBoss.prototype.start = function() {
-      var XY, boss, player, _i, _len;
+      var XY, boss;
       console.log("boss generate");
       XY = this.getXY();
-      for (_i = 0, _len = players.length; _i < _len; _i++) {
-        player = players[_i];
-        boss = this.ennemi.getEnnemi(4);
-        boss.life = boss.life * players.length;
-        player.socket.sendText(JSON.stringify({
-          opcode: 9,
-          ennemi: boss,
-          x: XY[0],
-          y: XY[1]
-        }));
-      }
+      boss = this.ennemi.getEnnemi(4);
+      boss.life = boss.life * players.length;
+      this.sendAllPlayer({
+        opcode: 9,
+        ennemi: boss,
+        x: XY[0],
+        y: XY[1]
+      });
       return boss = setInterval((function(_this) {
         return function() {
-          var _j, _len1;
-          if (score.getScore() >= _this.finalScore) {
+          if (score.getScore() >= _this.getfinalScore()) {
             console.log("terminate");
-            for (_j = 0, _len1 = players.length; _j < _len1; _j++) {
-              player = players[_j];
-              player.socket.sendText(JSON.stringify({
-                opcode: 13,
-                partie: "Level 1 terminé",
-                color: "green"
-              }));
-              player.socket.sendText(JSON.stringify({
-                opcode: 25,
-                boss: false
-              }));
-            }
-            return clearInterval(boss);
+            _this.sendAllPlayer({
+              opcode: 13,
+              partie: "Level 1 terminé",
+              color: "green"
+            });
+            _this.sendAllPlayer({
+              opcode: 25,
+              boss: false
+            });
+            clearInterval(boss);
+            return _this.levelTwo();
           }
         };
       })(this), 200);
@@ -545,7 +554,7 @@
     __extends(Levelone, _super);
 
     function Levelone() {
-      this.finalScore = 10000;
+      this.setfinalScore(500);
       this.ennemi = new Ennemi();
       score.initScore();
       console.log(score.getScore());
@@ -561,52 +570,43 @@
       passage = 0;
       return partie = setInterval((function(_this) {
         return function() {
-          var XY, j, player, random, x, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _n;
+          var XY, j, player, random, x, _i, _j, _len;
           random = Math.floor((Math.random() * 10) + 1);
           if (random < 5) {
             XY = _this.getXY();
-            for (_i = 0, _len = players.length; _i < _len; _i++) {
-              player = players[_i];
-              player.socket.sendText(JSON.stringify({
-                opcode: 9,
-                ennemi: _this.ennemi.getEnnemi(1),
-                x: XY[0],
-                y: XY[1]
-              }));
-            }
+            _this.sendAllPlayer({
+              opcode: 9,
+              ennemi: _this.ennemi.getEnnemi(1),
+              x: XY[0],
+              y: XY[1]
+            });
           }
           if (random > 8) {
             XY = _this.getXY();
-            for (_j = 0, _len1 = players.length; _j < _len1; _j++) {
-              player = players[_j];
-              player.socket.sendText(JSON.stringify({
-                opcode: 9,
-                ennemi: _this.ennemi.getEnnemi(2),
-                x: XY[0],
-                y: XY[1]
-              }));
-            }
+            _this.sendAllPlayer({
+              opcode: 9,
+              ennemi: _this.ennemi.getEnnemi(2),
+              x: XY[0],
+              y: XY[1]
+            });
           }
           if (random < 2) {
             XY = _this.getXY();
-            for (_k = 0, _len2 = players.length; _k < _len2; _k++) {
-              player = players[_k];
-              player.socket.sendText(JSON.stringify({
-                opcode: 9,
-                ennemi: _this.ennemi.getEnnemi(3),
-                x: XY[0],
-                y: XY[1]
-              }));
-            }
+            _this.sendAllPlayer({
+              opcode: 9,
+              ennemi: _this.ennemi.getEnnemi(3),
+              x: XY[0],
+              y: XY[1]
+            });
           }
           if (random === 10) {
             passage++;
             if (passage > 30) {
               passage = 0;
-              for (j = _l = 1; _l <= 15; j = ++_l) {
+              for (j = _i = 1; _i <= 15; j = ++_i) {
                 x = j * 101;
-                for (_m = 0, _len3 = players.length; _m < _len3; _m++) {
-                  player = players[_m];
+                for (_j = 0, _len = players.length; _j < _len; _j++) {
+                  player = players[_j];
                   player.socket.sendText(JSON.stringify({
                     opcode: 9,
                     ennemi: _this.ennemi.getEnnemi(3),
@@ -617,21 +617,18 @@
               }
             }
           }
-          if (score.getScore() > _this.finalScore) {
+          if (score.getScore() > _this.getfinalScore()) {
             console.log("Boss");
             clearInterval(partie);
-            for (_n = 0, _len4 = players.length; _n < _len4; _n++) {
-              player = players[_n];
-              player.socket.sendText(JSON.stringify({
-                opcode: 13,
-                partie: "Boss level 1",
-                color: "red"
-              }));
-              player.socket.sendText(JSON.stringify({
-                opcode: 25,
-                boss: true
-              }));
-            }
+            _this.sendAllPlayer({
+              opcode: 13,
+              partie: "Boss level 1",
+              color: "red"
+            });
+            _this.sendAllPlayer({
+              opcode: 25,
+              boss: true
+            });
             return _this.Boss();
           }
         };

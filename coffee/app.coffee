@@ -22,7 +22,7 @@ class Application
     @connection = mysql.createConnection {
       host : 'localhost',
       user       : 'root',
-      password   : "yfful95df"
+      password   : "nicolas95"
     }
     console.log "database connected : '#{base}'"
     @connection.query "USE #{base}"

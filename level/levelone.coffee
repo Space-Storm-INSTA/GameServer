@@ -1,43 +1,39 @@
 class Levelone extends Game
   constructor: () ->
-    @finalScore = 10000
+    @setfinalScore 500
     @ennemi = new Ennemi()
-    score.initScore()
     console.log score.getScore()
-    @partie1()
+    @start()
   Boss: () ->
     new LevelOneBoss()
-  partie1: () ->
+  start: () ->
     passage = 0
     partie = setInterval =>
       random = Math.floor((Math.random() * 10) + 1)
       if random < 5
         XY = @getXY()
-        for player in players
-          player.socket.sendText JSON.stringify ({
+        @sendAllPlayer {
             opcode:9
             ennemi:@ennemi.getEnnemi 1
             x: XY[0]
             y: XY[1]
-          })
+          }
       if random > 8
         XY = @getXY()
-        for player in players
-          player.socket.sendText JSON.stringify ({
-            opcode:9
-            ennemi:@ennemi.getEnnemi 2
-            x: XY[0]
-            y: XY[1]
-          })
+        @sendAllPlayer {
+          opcode:9
+          ennemi:@ennemi.getEnnemi 2
+          x: XY[0]
+          y: XY[1]
+        }
       if random < 2
         XY = @getXY()
-        for player in players
-          player.socket.sendText JSON.stringify ({
-            opcode:9
-            ennemi:@ennemi.getEnnemi 3
-            x: XY[0]
-            y: XY[1]
-          })
+        @sendAllPlayer {
+          opcode:9
+          ennemi:@ennemi.getEnnemi 3
+          x: XY[0]
+          y: XY[1]
+        }
       if random is 10
         passage++
         if passage > 30
@@ -51,19 +47,18 @@ class Levelone extends Game
                 x: x
                 y: 0
               })
-      if score.getScore() > @finalScore
+      if score.getScore() > @getfinalScore()
         console.log "Boss"
         clearInterval partie
-        for player in players
-          player.socket.sendText JSON.stringify ({
+        @sendAllPlayer {
             opcode: 13
             partie: "Boss level 1"
             color: "red"
-          })
-          player.socket.sendText JSON.stringify ({
-            opcode: 25
-            boss:true
-          })
+          }
+        @sendAllPlayer {
+          opcode: 25
+          boss:true
+        }
         @Boss()
     , 200
 global.Levelone = Levelone
