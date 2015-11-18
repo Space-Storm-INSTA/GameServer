@@ -61,29 +61,27 @@
   var Exp;
 
   Exp = (function() {
-    function Exp(id) {
-      this.getScoreEnnemi(id, (function(_this) {
-        return function(exp) {
-          var exp_player;
-          console.log(exp);
-          return exp_player = exp;
-        };
-      })(this));
-    }
-
-    Exp.prototype.getScoreEnnemi = function(id) {
-      console.log(id);
-      return app.getConnection().query('select * from users WHERE id=?', [id], (function(_this) {
+    function Exp(id, callback) {
+      app.getConnection().query('select * from users WHERE id=?', [id], (function(_this) {
         return function(err, rows) {
           if (err) {
             console.log("request exp");
             console.log(err);
           }
-          console.log(rows);
-          return callback(rows.exp);
+          if (rows.length !== 0) {
+            return callback(rows[0]);
+          } else {
+            return callback({
+              id: null,
+              name: "anonyme",
+              level: 1,
+              exp: 0,
+              password: null
+            });
+          }
         };
       })(this));
-    };
+    }
 
     return Exp;
 
@@ -152,7 +150,11 @@
     };
 
     Score.prototype.SuprScore = function(nb) {
-      return this.GlobalScore - nb;
+      if (this.GlobalScore > nb) {
+        return this.GlobalScore - nb;
+      } else {
+        return this.GlobalScore = 0;
+      }
     };
 
     Score.prototype.addScrore = function(type) {
@@ -168,6 +170,18 @@
         }
       }
       return _results;
+    };
+
+    Score.prototype.getExpEnnemi = function(type) {
+      var table, _i, _len, _ref;
+      _ref = this.exp;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        table = _ref[_i];
+        if (table.id === type) {
+          return table.exp;
+        }
+      }
+      return 0;
     };
 
     Score.prototype.getScoreEnnemi = function(callback) {
@@ -274,7 +288,7 @@
       this.id = id;
       this.life = 100;
       this.master = false;
-      this.exp = 0;
+      this.exp = {};
       try {
         this.socket.sendText(JSON.stringify({
           opcode: 1
@@ -292,6 +306,12 @@
         console.log(err);
       }
     }
+
+    Player.prototype.save = function(json) {
+      console.log("save");
+      app.getConnection().query("UPDATE  `kingoloto`.`users` SET  `level` =  '" + json.level + "' WHERE  `users`.`id` =" + json.id);
+      return app.getConnection().query("UPDATE  `kingoloto`.`users` SET  `exp` =  '" + json.exp + "' WHERE  `users`.`id` =" + json.id);
+    };
 
     Player.prototype.close = function(socket) {
       var err;
@@ -311,6 +331,7 @@
               }
               if (player.id === _this.id) {
                 master = true;
+                _this.save(player.exp);
               }
             }
             players.splice(players.indexOf(_this), 1);
@@ -355,10 +376,29 @@
               _results = [];
               for (_i = 0, _len = players.length; _i < _len; _i++) {
                 player = players[_i];
-                _results.push(player.socket.sendText(JSON.stringify({
+                player.socket.sendText(JSON.stringify({
                   opcode: 12,
-                  score: score.getScore()
-                })));
+                  score: score.getScore(),
+                  exp: player.exp.exp,
+                  level: player.exp.level,
+                  maxexp: 4000 / 1.9 * player.exp.level
+                }));
+                if (player.id === _this.id) {
+                  player.exp.exp = player.exp.exp + score.getExpEnnemi(json.type);
+                  if (player.exp.exp > 4000 / 1.9 * player.exp.level) {
+                    player.exp.level = player.exp.level + 1;
+                    player.exp.exp = 0;
+                    _results.push(player.socket.sendText(JSON.stringify({
+                      opcode: 13,
+                      partie: "Level UP<br />level " + player.exp.level,
+                      color: "green"
+                    })));
+                  } else {
+                    _results.push(void 0);
+                  }
+                } else {
+                  _results.push(void 0);
+                }
               }
               return _results;
               break;
@@ -369,7 +409,15 @@
               for (_j = 0, _len1 = players.length; _j < _len1; _j++) {
                 player = players[_j];
                 if (player.id === json.id) {
-                  player.life = player.life - 5;
+                  if (json.type === 8) {
+                    player.socket.sendText(JSON.stringify({
+                      opcode: 22,
+                      arme: 2,
+                      Mseconde: 2000
+                    }));
+                  } else {
+                    player.life = player.life - 5;
+                  }
                   if (player.life < 0) {
                     player.life = 0;
                   }
@@ -393,14 +441,14 @@
                 }
               }
               if (playerDead.dead) {
-                score.SuprScore(100);
+                score.SuprScore(1000);
                 _results1 = [];
                 for (_k = 0, _len2 = players.length; _k < _len2; _k++) {
                   player = players[_k];
                   if (player.id === playerDead.id) {
                     player.socket.sendText(JSON.stringify({
                       opcode: 13,
-                      partie: "Mort <3",
+                      partie: "Mort <br /> -1000 points",
                       color: "red"
                     }));
                   }
@@ -450,6 +498,18 @@
                       opcode: 3,
                       id: _this.id
                     }));
+                  }
+                  if (player.id === _this.id) {
+                    new Exp(_this.id, function(rows) {
+                      player.exp = rows;
+                      return player.socket.sendText(JSON.stringify({
+                        opcode: 21,
+                        exp: player.exp.exp,
+                        maxexp: 4000 / 1.9 * player.exp.level,
+                        level: player.exp.level,
+                        score: score.getScore()
+                      }));
+                    });
                   }
                 }
                 if (players.length === 1) {
@@ -688,6 +748,15 @@
           }
           if (random === 10) {
             passage++;
+            if (passage === 20) {
+              XY = _this.getXY();
+              _this.sendAllPlayer({
+                opcode: 9,
+                ennemi: _this.ennemi.getEnnemi(8),
+                x: XY[0],
+                y: XY[1]
+              });
+            }
             if (passage > 30) {
               passage = 0;
               for (j = _i = 1; _i <= 15; j = ++_i) {

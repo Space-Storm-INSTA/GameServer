@@ -6,11 +6,19 @@ class Score
   initScore: () ->
     @GlobalScore = 0
   SuprScore: (nb) ->
-    @GlobalScore - nb
+    if @GlobalScore > nb
+      @GlobalScore - nb
+    else
+      @GlobalScore = 0
   addScrore: (type) ->
     for table in @exp
       if table.id is type
         @GlobalScore = @GlobalScore + table.exp
+  getExpEnnemi: (type) ->
+    for table in @exp
+      if table.id is type
+        return table.exp
+    return 0
   getScoreEnnemi: (callback) ->
     arrayExp = []
     app.getConnection().query 'select * from ennemie', [], (err, rows) =>

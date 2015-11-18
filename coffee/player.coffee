@@ -2,7 +2,7 @@ class Player
   constructor: (@socket, @id) ->
     @life = 100
     @master = false
-    @exp = 0
+    @exp = {}
     try
       @socket.sendText JSON.stringify ({
         opcode: 1
@@ -17,6 +17,10 @@ class Player
     catch err
       console.log "constructor"
       console.log err
+  save: (json) ->
+    console.log "save"
+    app.getConnection().query "UPDATE  `kingoloto`.`users` SET  `level` =  '#{json.level}' WHERE  `users`.`id` =#{json.id}"
+    app.getConnection().query "UPDATE  `kingoloto`.`users` SET  `exp` =  '#{json.exp}' WHERE  `users`.`id` =#{json.id}"
   close: (@socket) ->
     try
       @socket.on 'close', (code, reason) =>
@@ -30,6 +34,7 @@ class Player
           if player.id is @id
             #moeeww on regarde si la personne qui va etre delet est le master de la partie
             master = true
+            @save player.exp
         players.splice players.indexOf(@), 1
         console.log "Connection closed for #{@id}"
         if master and players.length > 0
@@ -62,14 +67,34 @@ class Player
             player.socket.sendText JSON.stringify ({
               opcode: 12
               score:score.getScore()
+              exp:player.exp.exp
+              level:player.exp.level
+              maxexp: 4000 / 1.9 * player.exp.level
             })
+            if player.id is @id
+              player.exp.exp = player.exp.exp + score.getExpEnnemi(json.type)
+              if player.exp.exp > 4000 / 1.9 * player.exp.level
+                player.exp.level = player.exp.level + 1
+                player.exp.exp = 0
+                player.socket.sendText JSON.stringify ({
+                  opcode: 13
+                  partie: "Level UP<br />level #{player.exp.level}"
+                  color: "green"
+                })
         when 10
           #life
           playerDead = {dead:false}
           for player in players
             if player.id is json.id
               #Meooww
-              player.life = player.life - 5
+              if json.type is 8
+                player.socket.sendText JSON.stringify ({
+                  opcode: 22
+                  arme: 2
+                  Mseconde:2000
+                })
+              else
+                player.life = player.life - 5
               if player.life < 0
                 player.life = 0
               player.socket.sendText JSON.stringify ({
@@ -90,12 +115,12 @@ class Player
                 })
           if playerDead.dead
             #On enleve 100 de score global si un joueur meurt
-            score.SuprScore 100
+            score.SuprScore 1000
             for player in players
               if player.id is playerDead.id
                 player.socket.sendText JSON.stringify ({
                   opcode: 13
-                  partie: "Mort <3"
+                  partie: "Mort <br /> -1000 points"
                   color: "red"
                 })
               player.socket.sendText JSON.stringify ({
@@ -124,14 +149,22 @@ class Player
           #connection player meooww
           try
             @id = json.id
-            #new Exp @id
             for player in players
               if player.id isnt @id
                 player.socket.sendText JSON.stringify ({
                   opcode: 3
                   id: @id
                 })
-
+              if player.id is @id
+                new Exp @id, (rows) =>
+                  player.exp = rows
+                  player.socket.sendText JSON.stringify ({
+                    opcode: 21
+                    exp: player.exp.exp
+                    maxexp: 4000 / 1.9 * player.exp.level
+                    level: player.exp.level
+                    score: score.getScore()
+                  })
             if players.length is 1
               player.master = true
               player.socket.sendText JSON.stringify ({

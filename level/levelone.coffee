@@ -36,6 +36,14 @@ class LevelOne extends Game
         }
       if random is 10
         passage++
+        if passage is 20
+          XY = @getXY()
+          @sendAllPlayer {
+              opcode:9
+              ennemi:@ennemi.getEnnemi 8
+              x: XY[0]
+              y: XY[1]
+            }
         if passage > 30
           passage = 0
           for j in [1..15]
