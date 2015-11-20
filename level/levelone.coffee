@@ -68,5 +68,5 @@ class LevelOne extends Game
           boss:true
         }
         @Boss()
-    , 200
+    , 500
 global.LevelOne = LevelOne

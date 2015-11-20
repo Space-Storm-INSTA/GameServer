@@ -788,7 +788,7 @@
             return _this.Boss();
           }
         };
-      })(this), 200);
+      })(this), 500);
     };
 
     return LevelOne;
