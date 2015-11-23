@@ -148,39 +148,41 @@ class Player
         when 2
           #connection player meooww
           try
-            @id = json.id
-            for player in players
-              if player.id isnt @id
-                player.socket.sendText JSON.stringify ({
-                  opcode: 3
-                  id: @id
-                })
-              if player.id is @id
-                new Exp @id, (rows) =>
-                  player.exp = rows
+            gesttoken = new gestToken json.token
+            gesttoken.getId "", (id) =>
+              @id = id
+              for player in players
+                if player.id isnt @id
                   player.socket.sendText JSON.stringify ({
-                    opcode: 21
-                    exp: player.exp.exp
-                    maxexp: 4000 / 1.9 * player.exp.level
-                    level: player.exp.level
-                    score: score.getScore()
+                    opcode: 3
+                    id: @id
                   })
-            if players.length is 1
-              player.master = true
-              player.socket.sendText JSON.stringify ({
-                opcode: 0
-                id: @id
-                master:true
-              })
-
-            for player in players
-              if player.id isnt @id
-                @socket.sendText JSON.stringify ({
-                  opcode: 3
-                  id: player.id
+                if player.id is @id
+                  new Exp @id, (rows) =>
+                    player.exp = rows
+                    player.socket.sendText JSON.stringify ({
+                      opcode: 21
+                      exp: player.exp.exp
+                      maxexp: 4000 / 1.9 * player.exp.level
+                      level: player.exp.level
+                      score: score.getScore()
+                    })
+              if players.length is 1
+                player.master = true
+                player.socket.sendText JSON.stringify ({
+                  opcode: 0
+                  id: @id
+                  master:true
                 })
 
-            console.log "Player #{@id} connected !"
+              for player in players
+                if player.id isnt @id
+                  @socket.sendText JSON.stringify ({
+                    opcode: 3
+                    id: player.id
+                  })
+
+              console.log "Player #{@id} connected !"
           catch err
             console.log "connection player"
             console.log err

@@ -279,6 +279,34 @@
 }).call(this);
 
 (function() {
+  var gestToken;
+
+  gestToken = (function() {
+    function gestToken(token) {
+      this.token = token;
+    }
+
+    gestToken.prototype.getId = function(id, callback) {
+      return app.getConnection().query('select * from users where token=?', [this.token], (function(_this) {
+        return function(err, rows) {
+          if (rows.length === 0) {
+            return callback("nok");
+          } else {
+            return callback(rows[0].id);
+          }
+        };
+      })(this));
+    };
+
+    return gestToken;
+
+  })();
+
+  global.gestToken = gestToken;
+
+}).call(this);
+
+(function() {
   var Player;
 
   Player = (function() {
@@ -362,7 +390,7 @@
       this.id = id;
       return this.socket.on('text', (function(_this) {
         return function(str) {
-          var err, json, player, playerDead, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _results, _results1, _results2, _results3;
+          var err, gesttoken, json, player, playerDead, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _results, _results1, _results2, _results3;
           try {
             json = JSON.parse(str);
           } catch (_error) {
@@ -490,46 +518,50 @@
               break;
             case 2:
               try {
-                _this.id = json.id;
-                for (_m = 0, _len4 = players.length; _m < _len4; _m++) {
-                  player = players[_m];
-                  if (player.id !== _this.id) {
-                    player.socket.sendText(JSON.stringify({
-                      opcode: 3,
-                      id: _this.id
-                    }));
-                  }
-                  if (player.id === _this.id) {
-                    new Exp(_this.id, function(rows) {
-                      player.exp = rows;
-                      return player.socket.sendText(JSON.stringify({
-                        opcode: 21,
-                        exp: player.exp.exp,
-                        maxexp: 4000 / 1.9 * player.exp.level,
-                        level: player.exp.level,
-                        score: score.getScore()
+                gesttoken = new gestToken(json.token);
+                return gesttoken.getId("", function(id) {
+                  var _len4, _len5, _m, _n;
+                  _this.id = id;
+                  for (_m = 0, _len4 = players.length; _m < _len4; _m++) {
+                    player = players[_m];
+                    if (player.id !== _this.id) {
+                      player.socket.sendText(JSON.stringify({
+                        opcode: 3,
+                        id: _this.id
                       }));
-                    });
+                    }
+                    if (player.id === _this.id) {
+                      new Exp(_this.id, function(rows) {
+                        player.exp = rows;
+                        return player.socket.sendText(JSON.stringify({
+                          opcode: 21,
+                          exp: player.exp.exp,
+                          maxexp: 4000 / 1.9 * player.exp.level,
+                          level: player.exp.level,
+                          score: score.getScore()
+                        }));
+                      });
+                    }
                   }
-                }
-                if (players.length === 1) {
-                  player.master = true;
-                  player.socket.sendText(JSON.stringify({
-                    opcode: 0,
-                    id: _this.id,
-                    master: true
-                  }));
-                }
-                for (_n = 0, _len5 = players.length; _n < _len5; _n++) {
-                  player = players[_n];
-                  if (player.id !== _this.id) {
-                    _this.socket.sendText(JSON.stringify({
-                      opcode: 3,
-                      id: player.id
+                  if (players.length === 1) {
+                    player.master = true;
+                    player.socket.sendText(JSON.stringify({
+                      opcode: 0,
+                      id: _this.id,
+                      master: true
                     }));
                   }
-                }
-                return console.log("Player " + _this.id + " connected !");
+                  for (_n = 0, _len5 = players.length; _n < _len5; _n++) {
+                    player = players[_n];
+                    if (player.id !== _this.id) {
+                      _this.socket.sendText(JSON.stringify({
+                        opcode: 3,
+                        id: player.id
+                      }));
+                    }
+                  }
+                  return console.log("Player " + _this.id + " connected !");
+                });
               } catch (_error) {
                 err = _error;
                 console.log("connection player");
@@ -539,8 +571,8 @@
             case 4:
               try {
                 _results3 = [];
-                for (_o = 0, _len6 = players.length; _o < _len6; _o++) {
-                  player = players[_o];
+                for (_m = 0, _len4 = players.length; _m < _len4; _m++) {
+                  player = players[_m];
                   if (player.id !== _this.id) {
                     _results3.push(player.socket.sendText(JSON.stringify({
                       opcode: 4,
@@ -718,6 +750,9 @@
       return partie = setInterval((function(_this) {
         return function() {
           var XY, j, player, random, x, _i, _j, _len;
+          if (players.length === 0) {
+            clearInterval(partie);
+          }
           random = _this.getRandomNumber();
           if (random < 5) {
             XY = _this.getXY();
@@ -749,6 +784,7 @@
           if (random === 10) {
             passage++;
             if (passage === 20) {
+              console.log("bonus");
               XY = _this.getXY();
               _this.sendAllPlayer({
                 opcode: 9,

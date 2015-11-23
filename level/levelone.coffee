@@ -9,6 +9,8 @@ class LevelOne extends Game
   start: () ->
     passage = 0
     partie = setInterval =>
+      if players.length is 0
+        clearInterval partie
       random = @getRandomNumber()
       if random < 5
         XY = @getXY()
@@ -37,6 +39,7 @@ class LevelOne extends Game
       if random is 10
         passage++
         if passage is 20
+          console.log "bonus"
           XY = @getXY()
           @sendAllPlayer {
               opcode:9
