@@ -64,15 +64,15 @@ class Player
           score.addScrore json.type
           console.log score.getScore()
           for player in players
-            player.socket.sendText JSON.stringify ({
-              opcode: 12
-              score:score.getScore()
-              exp:player.exp.exp
-              level:player.exp.level
-              maxexp: 4000 / 1.9 * player.exp.level
-            })
             if player.id is @id
               player.exp.exp = player.exp.exp + score.getExpEnnemi(json.type)
+              player.socket.sendText JSON.stringify ({
+                opcode: 12
+                score:score.getScore()
+                exp:player.exp.exp
+                level:player.exp.level
+                maxexp: 4000 / 1.9 * player.exp.level
+              })
               if player.exp.exp > 4000 / 1.9 * player.exp.level
                 player.exp.level = player.exp.level + 1
                 player.exp.exp = 0
@@ -158,6 +158,11 @@ class Player
                     id: @id
                   })
                 if player.id is @id
+                  player.socket.sendText JSON.stringify ({
+                    opcode: 2
+                    token:json.token
+                    id: @id
+                  })
                   new Exp @id, (rows) =>
                     player.exp = rows
                     player.socket.sendText JSON.stringify ({

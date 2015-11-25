@@ -404,15 +404,15 @@
               _results = [];
               for (_i = 0, _len = players.length; _i < _len; _i++) {
                 player = players[_i];
-                player.socket.sendText(JSON.stringify({
-                  opcode: 12,
-                  score: score.getScore(),
-                  exp: player.exp.exp,
-                  level: player.exp.level,
-                  maxexp: 4000 / 1.9 * player.exp.level
-                }));
                 if (player.id === _this.id) {
                   player.exp.exp = player.exp.exp + score.getExpEnnemi(json.type);
+                  player.socket.sendText(JSON.stringify({
+                    opcode: 12,
+                    score: score.getScore(),
+                    exp: player.exp.exp,
+                    level: player.exp.level,
+                    maxexp: 4000 / 1.9 * player.exp.level
+                  }));
                   if (player.exp.exp > 4000 / 1.9 * player.exp.level) {
                     player.exp.level = player.exp.level + 1;
                     player.exp.exp = 0;
@@ -531,6 +531,11 @@
                       }));
                     }
                     if (player.id === _this.id) {
+                      player.socket.sendText(JSON.stringify({
+                        opcode: 2,
+                        token: json.token,
+                        id: _this.id
+                      }));
                       new Exp(_this.id, function(rows) {
                         player.exp = rows;
                         return player.socket.sendText(JSON.stringify({
