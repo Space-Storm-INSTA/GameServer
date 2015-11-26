@@ -296,10 +296,6 @@
       })(this));
     }
 
-    bonusShop.prototype.deletBonus = function(id) {
-      return app.getConnection().query('');
-    };
-
     return bonusShop;
 
   })();

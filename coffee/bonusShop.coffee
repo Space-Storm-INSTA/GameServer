@@ -5,6 +5,4 @@ class bonusShop
         callback rows[0]
       else
         callback {bonus_arme:0}
-  deletBonus: (id) ->
-    app.getConnection().query ''
 global.bonusShop = bonusShop
