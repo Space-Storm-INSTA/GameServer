@@ -3,6 +3,7 @@ class Player
     @life = 100
     @master = false
     @exp = {}
+    @bonus = []
     try
       @socket.sendText JSON.stringify ({
         opcode: 1
@@ -17,10 +18,11 @@ class Player
     catch err
       console.log "constructor"
       console.log err
-  save: (json) ->
+  save: (exp, bonus) ->
     console.log "save"
-    app.getConnection().query "UPDATE  `kingoloto`.`users` SET  `level` =  '#{json.level}' WHERE  `users`.`id` =#{json.id}"
-    app.getConnection().query "UPDATE  `kingoloto`.`users` SET  `exp` =  '#{json.exp}' WHERE  `users`.`id` =#{json.id}"
+    app.getConnection().query "UPDATE  `kingoloto`.`users` SET  `level` =  '#{exp.level}' WHERE  `users`.`id` =#{exp.id}"
+    app.getConnection().query "UPDATE  `kingoloto`.`users` SET  `exp` =  '#{exp.exp}' WHERE  `users`.`id` =#{exp.id}"
+    app.getConnection().query "UPDATE  `kingoloto`.`shop` SET  `bonus_arme` =  '#{bonus.bonus_arme}' WHERE  `id_users` = #{exp.id}"
   close: (@socket) ->
     try
       @socket.on 'close', (code, reason) =>
@@ -34,7 +36,7 @@ class Player
           if player.id is @id
             #moeeww on regarde si la personne qui va etre delet est le master de la partie
             master = true
-            @save player.exp
+            @save player.exp, player.bonus
         players.splice players.indexOf(@), 1
         console.log "Connection closed for #{@id}"
         if master and players.length > 0
@@ -72,6 +74,7 @@ class Player
                 exp:player.exp.exp
                 level:player.exp.level
                 maxexp: 4000 / 1.9 * player.exp.level
+                bonus_arme:player.bonus.bonus_arme
               })
               if player.exp.exp > 4000 / 1.9 * player.exp.level
                 player.exp.level = player.exp.level + 1
@@ -163,15 +166,32 @@ class Player
                     token:json.token
                     id: @id
                   })
-                  new Exp @id, (rows) =>
-                    player.exp = rows
+
+                  if @id is "nok"
+                    player.exp = {exp:0, level:1}
+                    player.bonus = {bonus_arme:0}
                     player.socket.sendText JSON.stringify ({
                       opcode: 21
                       exp: player.exp.exp
                       maxexp: 4000 / 1.9 * player.exp.level
                       level: player.exp.level
                       score: score.getScore()
+                      bonus_arme:player.bonus.bonus_arme
                     })
+                  else
+                    new Exp @id, (rows) =>
+                      BonusShop = new bonusShop @id
+                      new bonusShop @id, (rowsBonus) =>
+                        player.exp = rows
+                        player.bonus = rowsBonus
+                        player.socket.sendText JSON.stringify ({
+                          opcode: 21
+                          exp: player.exp.exp
+                          maxexp: 4000 / 1.9 * player.exp.level
+                          level: player.exp.level
+                          score: score.getScore()
+                          bonus_arme:player.bonus.bonus_arme
+                        })
               if players.length is 1
                 player.master = true
                 player.socket.sendText JSON.stringify ({
@@ -205,4 +225,22 @@ class Player
           catch err
             console.log "position"
             console.log err
+        when 30
+          for player in players
+            if player.id is @id
+              if player.bonus.bonus_arme isnt 0
+                player.bonus.bonus_arme = player.bonus.bonus_arme - 1
+                player.socket.sendText JSON.stringify ({
+                  opcode: 31
+                  milli:5000
+                  arme_bonus:2
+                })
+              player.socket.sendText JSON.stringify ({
+                opcode: 12
+                score:score.getScore()
+                exp:player.exp.exp
+                level:player.exp.level
+                maxexp: 4000 / 1.9 * player.exp.level
+                bonus_arme:player.bonus.bonus_arme
+              })
 global.Player = Player

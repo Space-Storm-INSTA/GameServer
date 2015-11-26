@@ -14,7 +14,7 @@ class Application
     server = ws.createServer((conn) ->
       console.log 'New connection'
       players.push new Player(conn, -1)
-    ).listen(3001)
+    ).listen(3000)
 
     process.on 'uncaughtException', (err) ->
       console.error err.stack
@@ -23,7 +23,6 @@ class Application
       host : '5.196.69.227',
       user       : 'romain',
       password   : "ntm93"
-
     }
     console.log "database connected : '#{base}'"
     @connection.query "USE #{base}"

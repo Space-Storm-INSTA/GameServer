@@ -238,7 +238,7 @@
       server = ws.createServer(function(conn) {
         console.log('New connection');
         return players.push(new Player(conn, -1));
-      }).listen(3001);
+      }).listen(3000);
       return process.on('uncaughtException', function(err) {
         return console.error(err.stack);
       });
@@ -275,6 +275,36 @@
     global.score = score;
     return global.players = players;
   }, 200);
+
+}).call(this);
+
+(function() {
+  var bonusShop;
+
+  bonusShop = (function() {
+    function bonusShop(id, callback) {
+      app.getConnection().query('select * from shop where id_users=?', [id], (function(_this) {
+        return function(err, rows) {
+          if (rows.length !== 0) {
+            return callback(rows[0]);
+          } else {
+            return callback({
+              bonus_arme: 0
+            });
+          }
+        };
+      })(this));
+    }
+
+    bonusShop.prototype.deletBonus = function(id) {
+      return app.getConnection().query('');
+    };
+
+    return bonusShop;
+
+  })();
+
+  global.bonusShop = bonusShop;
 
 }).call(this);
 
@@ -317,6 +347,7 @@
       this.life = 100;
       this.master = false;
       this.exp = {};
+      this.bonus = [];
       try {
         this.socket.sendText(JSON.stringify({
           opcode: 1
@@ -335,10 +366,11 @@
       }
     }
 
-    Player.prototype.save = function(json) {
+    Player.prototype.save = function(exp, bonus) {
       console.log("save");
-      app.getConnection().query("UPDATE  `kingoloto`.`users` SET  `level` =  '" + json.level + "' WHERE  `users`.`id` =" + json.id);
-      return app.getConnection().query("UPDATE  `kingoloto`.`users` SET  `exp` =  '" + json.exp + "' WHERE  `users`.`id` =" + json.id);
+      app.getConnection().query("UPDATE  `kingoloto`.`users` SET  `level` =  '" + exp.level + "' WHERE  `users`.`id` =" + exp.id);
+      app.getConnection().query("UPDATE  `kingoloto`.`users` SET  `exp` =  '" + exp.exp + "' WHERE  `users`.`id` =" + exp.id);
+      return app.getConnection().query("UPDATE  `kingoloto`.`shop` SET  `bonus_arme` =  '" + bonus.bonus_arme + "' WHERE  `id_users` = " + exp.id);
     };
 
     Player.prototype.close = function(socket) {
@@ -359,7 +391,7 @@
               }
               if (player.id === _this.id) {
                 master = true;
-                _this.save(player.exp);
+                _this.save(player.exp, player.bonus);
               }
             }
             players.splice(players.indexOf(_this), 1);
@@ -390,7 +422,7 @@
       this.id = id;
       return this.socket.on('text', (function(_this) {
         return function(str) {
-          var err, gesttoken, json, player, playerDead, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _results, _results1, _results2, _results3;
+          var err, gesttoken, json, player, playerDead, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _m, _n, _results, _results1, _results2, _results3, _results4;
           try {
             json = JSON.parse(str);
           } catch (_error) {
@@ -411,7 +443,8 @@
                     score: score.getScore(),
                     exp: player.exp.exp,
                     level: player.exp.level,
-                    maxexp: 4000 / 1.9 * player.exp.level
+                    maxexp: 4000 / 1.9 * player.exp.level,
+                    bonus_arme: player.bonus.bonus_arme
                   }));
                   if (player.exp.exp > 4000 / 1.9 * player.exp.level) {
                     player.exp.level = player.exp.level + 1;
@@ -536,16 +569,40 @@
                         token: json.token,
                         id: _this.id
                       }));
-                      new Exp(_this.id, function(rows) {
-                        player.exp = rows;
-                        return player.socket.sendText(JSON.stringify({
+                      if (_this.id === "nok") {
+                        player.exp = {
+                          exp: 0,
+                          level: 1
+                        };
+                        player.bonus = {
+                          bonus_arme: 0
+                        };
+                        player.socket.sendText(JSON.stringify({
                           opcode: 21,
                           exp: player.exp.exp,
                           maxexp: 4000 / 1.9 * player.exp.level,
                           level: player.exp.level,
-                          score: score.getScore()
+                          score: score.getScore(),
+                          bonus_arme: player.bonus.bonus_arme
                         }));
-                      });
+                      } else {
+                        new Exp(_this.id, function(rows) {
+                          var BonusShop;
+                          BonusShop = new bonusShop(_this.id);
+                          return new bonusShop(_this.id, function(rowsBonus) {
+                            player.exp = rows;
+                            player.bonus = rowsBonus;
+                            return player.socket.sendText(JSON.stringify({
+                              opcode: 21,
+                              exp: player.exp.exp,
+                              maxexp: 4000 / 1.9 * player.exp.level,
+                              level: player.exp.level,
+                              score: score.getScore(),
+                              bonus_arme: player.bonus.bonus_arme
+                            }));
+                          });
+                        });
+                      }
                     }
                   }
                   if (players.length === 1) {
@@ -595,6 +652,33 @@
                 console.log("position");
                 return console.log(err);
               }
+              break;
+            case 30:
+              _results4 = [];
+              for (_n = 0, _len5 = players.length; _n < _len5; _n++) {
+                player = players[_n];
+                if (player.id === _this.id) {
+                  if (player.bonus.bonus_arme !== 0) {
+                    player.bonus.bonus_arme = player.bonus.bonus_arme - 1;
+                    player.socket.sendText(JSON.stringify({
+                      opcode: 31,
+                      milli: 5000,
+                      arme_bonus: 2
+                    }));
+                  }
+                  _results4.push(player.socket.sendText(JSON.stringify({
+                    opcode: 12,
+                    score: score.getScore(),
+                    exp: player.exp.exp,
+                    level: player.exp.level,
+                    maxexp: 4000 / 1.9 * player.exp.level,
+                    bonus_arme: player.bonus.bonus_arme
+                  })));
+                } else {
+                  _results4.push(void 0);
+                }
+              }
+              return _results4;
           }
         };
       })(this));
