@@ -449,6 +449,15 @@
                   if (player.exp.exp > 4000 / 1.9 * player.exp.level) {
                     player.exp.level = player.exp.level + 1;
                     player.exp.exp = 0;
+                    player.bonus.bonus_arme = player.bonus.bonus_arme + player.exp.level;
+                    player.socket.sendText(JSON.stringify({
+                      opcode: 21,
+                      exp: player.exp.exp,
+                      maxexp: 4000 / 1.9 * player.exp.level,
+                      level: player.exp.level,
+                      score: score.getScore(),
+                      bonus_arme: player.bonus.bonus_arme
+                    }));
                     _results.push(player.socket.sendText(JSON.stringify({
                       opcode: 13,
                       partie: "Level UP<br />level " + player.exp.level,
